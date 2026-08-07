@@ -36,7 +36,28 @@ npm start
 
 Open [http://localhost:4174/](http://localhost:4174/). The page intentionally shows no cards until a real catalogue is reachable.
 
-### One-liner: install the WebView source from GitHub
+### One-liner: easiest Linux installation for normal users
+
+On an already installed Hudiy Linux device, run this single command:
+
+~~~bash
+curl -fsSL https://raw.githubusercontent.com/EpicNori/Hudiy-Marketplace/main/scripts/install-hudiy-marketplace.sh | bash -s -- --yes --restart
+~~~
+
+This downloads the trusted installer and matching Marketplace source, creates a backup, copies the WebView files, updates only the Marketplace entries in Hudiy's two JSON files, validates the result, and reboots the device. It does not install community plugins or execute any community package.
+
+Use the one-liner only when you trust this repository and have reviewed the intended target. Remove `--yes` to keep the confirmation prompt. Remove `--restart` to finish without an immediate reboot.
+
+The device needs Linux, internet access, `curl`, `tar`, `python3`, and GNU `install`. Node.js is not required on the Hudiy device for the Marketplace WebView itself.
+
+### Run the installer from a local checkout
+
+~~~bash
+chmod +x scripts/install-hudiy-marketplace.sh
+./scripts/install-hudiy-marketplace.sh --restart
+~~~
+
+### Advanced one-liner: install source only
 
 Run this as one command on the prepared Hudiy device. It downloads the repository into a temporary directory, copies only the five static WebView files, and removes the temporary checkout. It does not overwrite Hudiy configuration and does not install a community plugin:
 
@@ -46,7 +67,7 @@ bash -c 'set -euo pipefail; tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; git c
 
 Prerequisites for this one-liner are a working internet connection, `git`, GNU `install`, and permission to write to `$HOME/.hudiy`. If the device has no `git`, copy the repository to the device first and use the file-copy procedure below.
 
-### One-liner: register the application and menu safely
+### Advanced one-liner: register the application and menu safely
 
 After the WebView files are present, this command backs up both Hudiy JSON files and replaces only an existing `hudiy_marketplace` entry. It preserves every other application and menu item. It requires `python3`:
 
@@ -174,6 +195,9 @@ integration/hudiy/applications_menu.marketplace.json
 
 scripts/verify-hudiy-integration.mjs
     Integration and empty-catalogue checks.
+
+scripts/install-hudiy-marketplace.sh
+    Linux end-user installer with backup, JSON merge, validation, and optional reboot.
 
 LICENSE
     Project license.
