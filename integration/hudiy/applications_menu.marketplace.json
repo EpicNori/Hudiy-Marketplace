@@ -1,0 +1,7 @@
+{
+  "categories": ["Hudiy"],
+  "label": "Hudiy Marketplace",
+  "iconFontFamily": "Material Symbols Rounded",
+  "iconName": "storefront",
+  "action": "hudiy_marketplace"
+}

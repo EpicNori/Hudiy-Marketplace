@@ -1,0 +1,10 @@
+{
+  "name": "hudiy_marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test:integration": "node scripts/verify-hudiy-integration.mjs"
+  }
+}

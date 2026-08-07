@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1115" />
+    <meta name="description" content="Hudiy Marketplace für Community-Erweiterungen" />
+    <title>Hudiy Marketplace</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="marketplace-page" aria-labelledby="page-title">
+      <header class="page-header">
+        <div class="title-block">
+          <div class="eyebrow"><span class="material-symbols" aria-hidden="true">✦</span> Hudiy-Einstellungen</div>
+          <h1 id="page-title">Hudiy Marketplace</h1>
+          <p>Community-Erweiterungen für dein Hudiy-Dashboard.</p>
+        </div>
+        <div class="header-actions">
+          <span class="status-chip" id="catalog-status" data-state="loading"><span class="status-dot" aria-hidden="true"></span><span id="catalog-status-label">Katalog wird geladen</span></span>
+          <button class="button button-tonal" id="open-upload" type="button"><span class="material-symbols" aria-hidden="true">↑</span><span>Plugin einreichen</span></button>
+        </div>
+      </header>
+
+      <section class="context-strip" aria-label="Hudiy-Kontext">
+          <span class="material-symbols context-icon" aria-hidden="true">▦</span>
+        <div><strong>In Hudiy geöffnet</strong><span>Marketplace-WebView innerhalb der normalen Einstellungen</span></div>
+        <span class="context-badge">Community-made · ungeprüft</span>
+      </section>
+
+      <section class="catalog-toolbar" aria-label="Marketplace-Suche und Filter">
+        <label class="search-field" for="catalog-search">
+          <span class="material-symbols" aria-hidden="true">⌕</span>
+          <span class="visually-hidden">Marketplace durchsuchen</span>
+          <input id="catalog-search" type="search" placeholder="Nach Name, Typ, Autor oder Beschreibung suchen" autocomplete="off" />
+          <button class="icon-button subtle" id="clear-search" type="button" aria-label="Suche leeren" hidden><span class="material-symbols" aria-hidden="true">×</span></button>
+        </label>
+        <div class="toolbar-row">
+          <div class="filter-group" id="type-filters" role="group" aria-label="Nach Typ filtern">
+            <button class="filter-chip active" type="button" data-type="all" aria-pressed="true">Alle</button>
+            <button class="filter-chip" type="button" data-type="app" aria-pressed="false">Apps</button>
+            <button class="filter-chip" type="button" data-type="widget" aria-pressed="false">Widgets</button>
+            <button class="filter-chip" type="button" data-type="overlay" aria-pressed="false">Overlays</button>
+            <button class="filter-chip" type="button" data-type="configuration" aria-pressed="false">Konfigurationen</button>
+          </div>
+          <label class="sort-field" for="sort-order"><span>Sortieren</span><select id="sort-order"><option value="popular">Beliebtheit</option><option value="recent">Aktualität</option><option value="name">Name</option></select></label>
+        </div>
+      </section>
+
+      <section class="safety-banner" aria-label="Sicherheitshinweis">
+        <span class="material-symbols" aria-hidden="true">◉</span>
+        <div><strong>Community-Inhalte sind ungeprüft.</strong><span>Es gibt keine Sicherheits-, Viren- oder Funktionsgarantie. Prüfe Berechtigungen und Quelle vor jeder Installation.</span></div>
+      </section>
+
+      <section class="catalog-section" aria-live="polite" aria-busy="true">
+        <div class="section-heading"><div><h2 id="catalog-heading">Community-Katalog</h2><p id="catalog-summary">Verfügbare Erweiterungen werden hier aufgelistet.</p></div><button class="icon-button" id="reload-catalog" type="button" aria-label="Katalog erneut laden"><span class="material-symbols" aria-hidden="true">↻</span></button></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <div class="empty-icon"><span class="material-symbols" aria-hidden="true">▣</span></div>
+          <h3 id="empty-title">Noch kein Katalog verbunden</h3>
+          <p id="empty-description">Hudiy Marketplace zeigt ohne echten Community-Katalog keine Beispielinhalte oder Platzhalter.</p>
+          <button class="button button-outlined" id="empty-retry" type="button"><span class="material-symbols" aria-hidden="true">↻</span>Erneut versuchen</button>
+        </div>
+        <div class="catalog-grid" id="catalog-grid" hidden></div>
+      </section>
+    </main>
+
+    <dialog class="modal" id="plugin-dialog" aria-labelledby="plugin-dialog-title">
+      <div class="modal-header"><div><span class="eyebrow" id="plugin-dialog-type">Community-Plugin</span><h2 id="plugin-dialog-title">Plugin</h2></div><button class="icon-button" data-close-dialog="plugin-dialog" type="button" aria-label="Dialog schließen"><span class="material-symbols" aria-hidden="true">×</span></button></div>
+      <div class="modal-body" id="plugin-dialog-body"></div>
+      <div class="modal-footer"><button class="button button-outlined" data-close-dialog="plugin-dialog" type="button">Schließen</button><button class="button button-primary" id="install-plugin" type="button"><span class="material-symbols" aria-hidden="true">↓</span>Über Hudiy installieren</button></div>
+    </dialog>
+
+    <dialog class="modal" id="upload-dialog" aria-labelledby="upload-dialog-title">
+      <div class="modal-header"><div><span class="eyebrow">Community-Beitrag</span><h2 id="upload-dialog-title">Plugin einreichen</h2></div><button class="icon-button" data-close-dialog="upload-dialog" type="button" aria-label="Dialog schließen"><span class="material-symbols" aria-hidden="true">×</span></button></div>
+      <div class="modal-body upload-body"><p class="lead">Uploads benötigen ein verbundenes Google-Konto und werden vor der Veröffentlichung als Manifest validiert.</p><div class="upload-checklist"><div><span class="material-symbols" aria-hidden="true">▤</span><span>Manifest mit Version, Dateien, Einstiegspunkten und Checksumme</span></div><div><span class="material-symbols" aria-hidden="true">●</span><span>Erlaubte Dateitypen und Pfade, keine Shell- oder Systembefehle</span></div><div><span class="material-symbols" aria-hidden="true">✓</span><span>Berechtigungen sichtbar vor der Installation</span></div></div><div class="auth-status" id="auth-status">Kein Upload-Backend verbunden. In der lokalen Preview werden keine Uploads simuliert.</div></div>
+      <div class="modal-footer"><button class="button button-outlined" data-close-dialog="upload-dialog" type="button">Schließen</button><button class="button button-primary" id="google-login" type="button" disabled><span class="material-symbols" aria-hidden="true">↪</span>Mit Google anmelden</button></div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script>
+      window.hudiyMarketplaceConfig = {
+        catalogEndpoint: "https://mdzsxuxqrhnadmkroalq.supabase.co/rest/v1/plugins?select=id,name,description,author,version,type,supported_hudiy_version,permissions,entrypoints,files,checksum,downloads,rating,updated_at&status=eq.published&order=downloads.desc,updated_at.desc",
+        catalogHeaders: {
+          apikey: "sb_publishable_HHy5vHMVCwmMb7kA-sgt5Q_UJ7A_vQM",
+          Authorization: "Bearer sb_publishable_HHy5vHMVCwmMb7kA-sgt5Q_UJ7A_vQM"
+        }
+      };
+    </script>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

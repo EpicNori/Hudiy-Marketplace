@@ -1,0 +1,15 @@
+{
+  "background": "#0f1115",
+  "surface": "#171a20",
+  "surfaceContainer": "#1d2027",
+  "surfaceContainerHigh": "#272b34",
+  "onBackground": "#f1f1f5",
+  "onSurface": "#e7e7ec",
+  "onSurfaceVariant": "#b8bbc5",
+  "primary": "#a9c7ff",
+  "onPrimary": "#102f60",
+  "outline": "#8e919d",
+  "outlineVariant": "#444852",
+  "error": "#ffb4ab",
+  "tertiary": "#e9b9f2"
+}

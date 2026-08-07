@@ -1,0 +1,8 @@
+{
+  "action": "hudiy_marketplace",
+  "url": "file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html",
+  "allowBackground": false,
+  "controlAudioFocus": false,
+  "audioStreamCategory": "NONE",
+  "zoomFactor": 1
+}
