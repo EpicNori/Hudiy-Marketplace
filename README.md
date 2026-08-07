@@ -58,7 +58,7 @@ Review the printed backup path before restarting. The command changes only the t
 
 ### Install the WebView source into an existing Hudiy installation
 
-Run these commands on the Hudiy device, not on Windows:
+Run these commands in a Linux shell on the Hudiy device:
 
 ~~~bash
 TARGET="$HOME/.hudiy/share/marketplace/hudiy-marketplace"
@@ -183,6 +183,12 @@ There are no demo cards, fixture objects, fake uploads, simulated installations,
 
 ## 3. Hudiy compatibility
 
+### 3.1 Linux support target
+
+Hudiy is a Linux application. The official support documentation currently lists Raspberry Pi OS Desktop 64-bit and Debian Trixie 64-bit on supported hardware. It does not document an official Windows runtime. This repository therefore treats Linux as the only Hudiy device target.
+
+Windows is not required for Marketplace device installation. All device commands in this guide use a POSIX shell and Linux paths. A separate desktop operating system may be used only to prepare or transfer files; it is not a supported Hudiy runtime target.
+
 The official Hudiy documentation supports custom HTML/JavaScript applications, widgets, and overlays through an embedded Chromium WebView. The page can communicate with Hudiy through the `window.hudiy` object and the Hudiy API.
 
 The supplied USB installation reports:
@@ -196,7 +202,15 @@ Menu configuration: .hudiy/share/config/applications_menu.json
 
 The USB contains the installed Hudiy binary and the existing Marketplace WebView source. The installer archive contains architecture-specific installer binaries, not the native Hudiy core source. This repository therefore integrates with the existing Hudiy WebView/API contract; it does not pretend to rebuild the proprietary Hudiy binary.
 
-The official Hudiy platform documentation lists Raspberry Pi Zero 2, 3B, 3B+, 4B, 5, and x86_64 targets. Always verify the target Hudiy release and operating system before deployment.
+The official Hudiy platform documentation lists these Linux targets:
+
+~~~text
+Raspberry Pi Zero 2, 3B, 3B+, 4B, 5: Raspberry Pi OS Desktop 64-bit Trixie
+Raspberry Pi 4B, 5:                 Raspberry Pi OS Desktop 64-bit Bookworm
+x86_64:                             Debian Trixie 64-bit with Desktop
+~~~
+
+Always verify the target Hudiy release and operating system before deployment.
 
 ## 4. Local preview
 
@@ -216,10 +230,12 @@ http://localhost:4174/
 
 The server listens only on 127.0.0.1. Port 4174 is intentional.
 
-### 4.2 PowerShell
+### 4.2 Linux workstation or SSH session
 
-~~~powershell
-git clone --depth 1 https://github.com/EpicNori/Hudiy-Marketplace.git; Set-Location Hudiy-Marketplace; npm start
+~~~bash
+git clone --depth 1 https://github.com/EpicNori/Hudiy-Marketplace.git
+cd Hudiy-Marketplace
+npm start
 ~~~
 
 ### 4.3 Empty catalogue behaviour
@@ -513,16 +529,16 @@ The implementation must:
 
 ## 11. Device deployment
 
-### 11.1 Understand the two machines
+### 11.1 Understand the two Linux paths
 
-The Windows drive letter is not the runtime path. For example:
+The mounted USB path is not the Hudiy runtime path. For example:
 
 ~~~text
-Windows/USB copy: D:\.hudiy\share\marketplace\hudiy-marketplace\
+USB mount:       /media/pi/HUDIY/.hudiy/share/marketplace/hudiy-marketplace/
 Hudiy runtime:   /home/pi/.hudiy/share/marketplace/hudiy-marketplace/
 ~~~
 
-The `file:///home/pi/...` URL in the Hudiy registration is resolved on the Raspberry Pi or Linux device. It is not resolved as `D:\...` by Windows. A USB copy becomes active only after its files are transferred to the Hudiy device's `$HOME/.hudiy` tree.
+The `file:///home/pi/...` URL in the Hudiy registration is resolved on the Raspberry Pi or Linux device. A USB copy becomes active only after its files are transferred to the Hudiy device's `$HOME/.hudiy` tree.
 
 ### 11.2 Preflight checklist
 
@@ -536,7 +552,7 @@ Before changing a device, confirm:
 - The repository revision you intend to install is trusted.
 - You have a rollback copy of both Hudiy JSON configuration files.
 
-Do not install the Marketplace by replacing the entire `.hudiy` directory. Do not run the Linux commands in this section in Windows PowerShell.
+Do not install the Marketplace by replacing the entire `.hudiy` directory. Run every command from a Linux shell on the target device.
 
 ### 11.3 Back up before deployment
 
@@ -576,17 +592,22 @@ install -m 0644 "$SOURCE/assets/MaterialSymbolsRounded.ttf" "$TARGET/assets/"
 
 This copies the Marketplace WebView source only. It does not start a second server and does not install a plugin package.
 
-### 11.5 Copy from Windows or a USB drive
+### 11.5 Copy from a Linux workstation or mounted USB drive
 
-The USB is a transfer medium. Copy the repository folder to the Hudiy device with a trusted method such as `scp`, an SSH file transfer tool, or a mounted USB drive. Then run the device-side copy command from the previous section.
+The USB is a Linux-readable transfer medium. On the Hudiy device, identify its mount point:
 
-Example from PowerShell, when SSH is enabled and the repository is in the current directory:
-
-~~~powershell
-scp -r . pi@hudiy:/home/pi/hudiy-marketplace-source
+~~~bash
+lsblk -f
+findmnt -t vfat,exfat,ext4,ntfs
 ~~~
 
-Then connect to the device and run:
+Copy the repository to the device with `scp` from another Linux machine:
+
+~~~bash
+scp -r ./Hudiy-Marketplace pi@hudiy:/home/pi/hudiy-marketplace-source
+~~~
+
+Or copy it from the mounted USB path. Then run on the Hudiy device:
 
 ~~~bash
 cd "$HOME/hudiy-marketplace-source"
@@ -596,7 +617,7 @@ install -m 0644 index.html app.js styles.css hudiy-theme.json "$TARGET/"
 install -m 0644 assets/MaterialSymbolsRounded.ttf "$TARGET/assets/"
 ~~~
 
-Replace `pi@hudiy` with the actual Hudiy username and host. Verify the destination before pressing Enter.
+Replace `pi@hudiy` with the actual Hudiy username and host. Verify the destination before running the command.
 
 ### 11.6 Merge and validate registration
 

@@ -2,6 +2,8 @@
 
 ## Integration model
 
+The Hudiy runtime target is Linux. The official Hudiy support matrix documents Raspberry Pi OS Desktop 64-bit and Debian Trixie 64-bit on Raspberry Pi and x86_64 hardware. This project does not claim Windows runtime support; a desktop operating system may be used only to transfer source files during development.
+
 Hudiy Marketplace is the source of one Hudiy custom application. It is loaded by Hudiy's embedded Chromium WebView and communicates with Hudiy through the official `window.hudiy` bridge.
 
 Hudiy owns:
