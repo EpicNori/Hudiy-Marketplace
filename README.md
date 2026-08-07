@@ -6,6 +6,40 @@ Every community entry is treated as unverified. The Marketplace never guarantees
 
 This guide covers local development, Supabase connectivity, Raspberry Pi installation, USB deployment, verification, rollback, and troubleshooting.
 
+## Table of contents
+
+- [Chapter 1: What this project contains](#chapter-1-what-this-project-contains)
+- [Chapter 2: Compatibility target](#chapter-2-compatibility-target)
+- [Chapter 3: Requirements](#chapter-3-requirements)
+  - [Local development](#local-development)
+  - [Hudiy device](#hudiy-device)
+- [Chapter 4: Fastest local start](#chapter-4-fastest-local-start)
+  - [Recommended one-liner](#recommended-one-liner)
+  - [Windows PowerShell one-liner](#windows-powershell-one-liner)
+  - [Verify before using the preview](#verify-before-using-the-preview)
+- [Chapter 5: Supabase connection](#chapter-5-supabase-connection)
+  - [Local `.env`](#local-env)
+  - [Catalog response](#catalog-response)
+- [Chapter 6: Install on a Hudiy Raspberry Pi](#chapter-6-install-on-a-hudiy-raspberry-pi)
+  - [6.1 Create a backup](#61-create-a-backup)
+  - [6.2 Copy the Marketplace files](#62-copy-the-marketplace-files)
+  - [6.3 Register the Hudiy application](#63-register-the-hudiy-application)
+  - [6.4 Register the Hudiy settings menu entry](#64-register-the-hudiy-settings-menu-entry)
+  - [6.5 Restart and open](#65-restart-and-open)
+- [Chapter 7: USB installation workflow](#chapter-7-usb-installation-workflow)
+- [Chapter 8: One-liner for a prepared Hudiy device](#chapter-8-one-liner-for-a-prepared-hudiy-device)
+- [Chapter 9: Security model](#chapter-9-security-model)
+- [Chapter 10: Theme and Hudiy bridge behavior](#chapter-10-theme-and-hudiy-bridge-behavior)
+- [Chapter 11: Troubleshooting](#chapter-11-troubleshooting)
+  - [The browser shows an old page](#the-browser-shows-an-old-page)
+  - [The catalog is empty](#the-catalog-is-empty)
+  - [Supabase returns an error](#supabase-returns-an-error)
+  - [The WebView is blank on Hudiy](#the-webview-is-blank-on-hudiy)
+  - [The menu item does not appear](#the-menu-item-does-not-appear)
+- [Chapter 12: Rollback](#chapter-12-rollback)
+- [Chapter 13: Release checklist](#chapter-13-release-checklist)
+- [Chapter 14: License](#chapter-14-license)
+
 ## Chapter 1: What this project contains
 
 The project is intentionally small and contains one visible HTML page:
