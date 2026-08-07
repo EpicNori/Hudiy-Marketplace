@@ -2,7 +2,7 @@
 
 ## Integration model
 
-Hudiy Marketplace is the source of one Hudiy custom application. It is loaded by Hudiy's embedded Chromium WebView and communicates with Hudiy through the official \`window.hudiy\` bridge.
+Hudiy Marketplace is the source of one Hudiy custom application. It is loaded by Hudiy's embedded Chromium WebView and communicates with Hudiy through the official `window.hudiy` bridge.
 
 Hudiy owns:
 
@@ -15,7 +15,7 @@ Hudiy owns:
 
 This project owns only the Marketplace content inside that WebView. It must not add a product sidebar, kiosk shell, duplicate Hudiy header, second navigation system, or second HTML page.
 
-The local preview server exists only for development and the optional catalogue proxy. The Hudiy application itself loads \`index.html\` directly from:
+The local preview server exists only for development and the optional catalogue proxy. The Hudiy application itself loads `index.html` directly from:
 
 ~~~text
 file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html
@@ -58,7 +58,7 @@ It does not contain a second Hudiy navigation or a separate settings rail.
 
 ## Hudiy WebView bridge
 
-The official Hudiy bridge is an object exposed to the page as \`window.hudiy\`.
+The official Hudiy bridge is an object exposed to the page as `window.hudiy`.
 
 The integration reads:
 
@@ -84,12 +84,12 @@ window.hudiy.onGoBack
 
 Hudiy invokes the colour, input-focus, activation, trigger, and attachment callbacks without requiring arguments. The page reads the current state again from the bridge.
 
-\`onGoBack\` returns:
+`onGoBack` returns:
 
-- \`true\` when the page closes an open Marketplace dialog
-- \`false\` when Hudiy must perform its native Back navigation
+- `true` when the page closes an open Marketplace dialog
+- `false` when Hudiy must perform its native Back navigation
 
-The page does not call a missing native installation function. If \`window.hudiy.installMarketplacePlugin\` is not provided by the future safe Hudiy installation layer, installation is refused with an explanatory message.
+The page does not call a missing native installation function. If `window.hudiy.installMarketplacePlugin` is not provided by the future safe Hudiy installation layer, installation is refused with an explanatory message.
 
 ## Theme contract
 
@@ -125,7 +125,7 @@ error
 tertiary
 ~~~
 
-When the Hudiy bridge is unavailable during local preview, \`hudiy-theme.json\` is loaded as the fallback. The fallback is not a second theme system and must never override a live Hudiy colour scheme.
+When the Hudiy bridge is unavailable during local preview, `hudiy-theme.json` is loaded as the fallback. The fallback is not a second theme system and must never override a live Hudiy colour scheme.
 
 Only validated hexadecimal and RGB/RGBA colour strings are written to CSS variables.
 
@@ -137,7 +137,7 @@ The default local endpoint is:
 /api/catalog
 ~~~
 
-The response may be either an array or an object containing a \`plugins\` array:
+The response may be either an array or an object containing a `plugins` array:
 
 ~~~json
 {
@@ -178,7 +178,7 @@ overlay
 configuration
 ~~~
 
-Optional display fields include downloads, rating, updatedAt, and links. Links are accepted only when their URL uses \`http://\` or \`https://\`.
+Optional display fields include downloads, rating, updatedAt, and links. Links are accepted only when their URL uses `http://` or `https://`.
 
 The frontend rejects:
 
@@ -197,9 +197,9 @@ The frontend remains backend-agnostic.
 
 It can receive a real catalogue from:
 
-1. \`window.hudiy.marketplaceCatalog\`
+1. `window.hudiy.marketplaceCatalog`
 2. a configured HTTP or HTTPS catalogue endpoint
-3. the local \`/api/catalog\` proxy
+3. the local `/api/catalog` proxy
 4. a controlled local JSON file during development
 
 Supabase is the current backend implementation. The local preview uses the public publishable key and never exposes a service or secret key to the page.
@@ -208,12 +208,12 @@ Google OAuth is part of the planned authenticated upload flow. The OAuth redirec
 
 Recommended Supabase resources:
 
-- \`plugins\`
-- \`plugin_versions\`
-- \`plugin_uploads\`
-- \`plugin_downloads\`
-- \`plugin_ratings\`
-- private \`plugin-packages\` Storage bucket
+- `plugins`
+- `plugin_versions`
+- `plugin_uploads`
+- `plugin_downloads`
+- `plugin_ratings`
+- private `plugin-packages` Storage bucket
 
 Row Level Security (RLS) must limit public reads to published records and limit writes to authenticated, validated workflows.
 
@@ -273,9 +273,9 @@ The normal visible URL is:
 http://localhost:4174/
 ~~~
 
-Technical cache keys such as \`rev\`, \`fresh\`, and \`cache\` are removed with \`history.replaceState\`. They must never re-enable demo data or appear in the normal visible URL.
+Technical cache keys such as `rev`, `fresh`, and `cache` are removed with `history.replaceState`. They must never re-enable demo data or appear in the normal visible URL.
 
-External URLs are accepted only when their protocol is \`http:\` or \`https:\`. The schemes \`javascript:\`, \`data:\`, \`file:\`, and all other schemes are rejected.
+External URLs are accepted only when their protocol is `http:` or `https:`. The schemes `javascript:`, `data:`, `file:`, and all other schemes are rejected.
 
 ## Hudiy registration
 
@@ -336,7 +336,7 @@ git diff --check
 
 Also verify manually:
 
-- the page loads from a Hudiy \`file://\` URL
+- the page loads from a Hudiy `file://` URL
 - all CSS, JavaScript, font, and theme paths remain relative
 - Hudiy Back closes dialogs and otherwise leaves the page
 - light and dark colour changes are applied

@@ -1,6 +1,6 @@
 # Hudiy Marketplace
 
-Hudiy Marketplace is the source of a Hudiy custom WebView application. It is designed to be loaded by Hudiy's existing embedded Chromium view and connected to Hudiy through the official \`window.hudiy\` bridge.
+Hudiy Marketplace is the source of a Hudiy custom WebView application. It is designed to be loaded by Hudiy's existing embedded Chromium view and connected to Hudiy through the official `window.hudiy` bridge.
 
 This is the supported Hudiy integration model for custom HTML/JavaScript applications. Hudiy remains responsible for the native settings frame, navigation, actions, WebView lifecycle, input routing, and theme. The Marketplace supplies only its page and its Marketplace functionality.
 
@@ -8,6 +8,7 @@ Every catalogue entry is visibly marked as community-made and unverified. No com
 
 ## Contents
 
+- [Quick installation and first use](#quick-installation-and-first-use)
 - [1. Integration model](#1-integration-model)
 - [2. What is in the source tree](#2-what-is-in-the-source-tree)
 - [3. Hudiy compatibility](#3-hudiy-compatibility)
@@ -22,6 +23,51 @@ Every catalogue entry is visibly marked as community-made and unverified. No com
 - [12. Verification](#12-verification)
 - [13. Troubleshooting](#13-troubleshooting)
 - [14. Sources and license](#14-sources-and-license)
+
+## Quick installation and first use
+
+### Local preview
+
+From the repository directory:
+
+~~~bash
+npm start
+~~~
+
+Open [http://localhost:4174/](http://localhost:4174/). The page intentionally shows no cards until a real catalogue is reachable.
+
+### Install the WebView source into an existing Hudiy installation
+
+Run these commands on the Hudiy device, not on Windows:
+
+~~~bash
+TARGET="$HOME/.hudiy/share/marketplace/hudiy-marketplace"
+mkdir -p "$TARGET/assets"
+cp index.html app.js styles.css hudiy-theme.json "$TARGET/"
+cp assets/MaterialSymbolsRounded.ttf "$TARGET/assets/"
+~~~
+
+Then merge the two registration fragments from `integration/hudiy/` into the existing Hudiy configuration files:
+
+~~~text
+$HOME/.hudiy/share/config/applications.json
+$HOME/.hudiy/share/config/applications_menu.json
+~~~
+
+Do not replace the complete Hudiy configuration files. The application object belongs in `applications`, and the menu object belongs in `applications_menu.json` under `items`. Validate both JSON files and restart Hudiy through its normal restart flow.
+
+### Open and use it in Hudiy
+
+1. Open the normal Hudiy settings menu.
+2. Open the Hudiy category.
+3. Select Hudiy Marketplace.
+4. Search by name, type, author, or description.
+5. Use the Apps, Widgets, Overlays, or Configurations filters.
+6. Sort by popularity, recency, or name.
+7. Open a result to inspect its permissions, checksum, version, and supported Hudiy version.
+8. Install only after an explicit confirmation and only when the safe Hudiy installation interface is available.
+
+If no real catalogue is connected, the correct result is an empty state with zero cards.
 
 ## 1. Integration model
 
@@ -117,7 +163,7 @@ There are no demo cards, fixture objects, fake uploads, simulated installations,
 
 ## 3. Hudiy compatibility
 
-The official Hudiy documentation supports custom HTML/JavaScript applications, widgets, and overlays through an embedded Chromium WebView. The page can communicate with Hudiy through the \`window.hudiy\` object and the Hudiy API.
+The official Hudiy documentation supports custom HTML/JavaScript applications, widgets, and overlays through an embedded Chromium WebView. The page can communicate with Hudiy through the `window.hudiy` object and the Hudiy API.
 
 The supplied USB installation reports:
 
@@ -214,12 +260,12 @@ window.hudiy.onTriggered
 window.hudiy.onGoBack
 ~~~
 
-The official Hudiy callbacks are invoked without requiring arguments. The page reads the current state from \`window.hudiy\`.
+The official Hudiy callbacks are invoked without requiring arguments. The page reads the current state from `window.hudiy`.
 
 The Back contract is:
 
-- \`true\`: the Marketplace handled the event, for example by closing a dialog
-- \`false\`: Hudiy performs its native Back navigation
+- `true`: the Marketplace handled the event, for example by closing a dialog
+- `false`: Hudiy performs its native Back navigation
 
 The page also implements focus movement for Hudiy key input. Touch input remains handled by Chromium.
 
@@ -227,9 +273,9 @@ The page also implements focus movement for Hudiy key input. Touch input remains
 
 The page checks catalogue sources in this order:
 
-1. \`window.hudiy.marketplaceCatalog\`
+1. `window.hudiy.marketplaceCatalog`
 2. configured HTTP or HTTPS catalogue endpoint
-3. local \`/api/catalog\` during preview
+3. local `/api/catalog` during preview
 4. no catalogue, resulting in the empty state
 
 The page never falls back to demo data.
@@ -245,7 +291,7 @@ hudiy-theme.json
 assets/MaterialSymbolsRounded.ttf
 ~~~
 
-The page uses a normal deferred script rather than relying on a module loader. This keeps the source compatible with Hudiy's local \`file://\` WebView and with the HTTP preview.
+The page uses a normal deferred script rather than relying on a module loader. This keeps the source compatible with Hudiy's local `file://` WebView and with the HTTP preview.
 
 ## 6. Registration fragments
 
@@ -255,7 +301,7 @@ The official Hudiy application configuration is:
 $HOME/.hudiy/share/config/applications.json
 ~~~
 
-Add the object from \`integration/hudiy/applications.marketplace.json\` to the existing applications array:
+Add the object from `integration/hudiy/applications.marketplace.json` to the existing applications array:
 
 ~~~json
 {
@@ -274,7 +320,7 @@ The official menu configuration is:
 $HOME/.hudiy/share/config/applications_menu.json
 ~~~
 
-Add the object from \`integration/hudiy/applications_menu.marketplace.json\` to the existing \`items\` array:
+Add the object from `integration/hudiy/applications_menu.marketplace.json` to the existing `items` array:
 
 ~~~json
 {
@@ -322,7 +368,7 @@ error
 tertiary
 ~~~
 
-When the bridge is absent in local preview, \`hudiy-theme.json\` is loaded as the fallback. A live Hudiy theme always takes precedence.
+When the bridge is absent in local preview, `hudiy-theme.json` is loaded as the fallback. A live Hudiy theme always takes precedence.
 
 ## 8. Catalogue and Supabase
 
@@ -434,8 +480,8 @@ The implementation must:
 
 - never guarantee safety, virus-free operation, or functional correctness
 - render untrusted catalogue values with DOM text nodes
-- allow only \`http://\` and \`https://\` external URLs
-- reject \`javascript:\`, \`data:\`, \`file:\`, and other schemes
+- allow only `http://` and `https://` external URLs
+- reject `javascript:`, `data:`, `file:`, and other schemes
 - require explicit user action before installation
 - show permissions before installation
 - validate hashes and versions
@@ -499,7 +545,7 @@ The integration test verifies:
 
 Manually verify:
 
-- the page loads from the Hudiy \`file://\` URL
+- the page loads from the Hudiy `file://` URL
 - the page has no second navigation
 - the live theme changes with Hudiy
 - dialogs close through Hudiy Back
@@ -507,13 +553,13 @@ Manually verify:
 - search, filters, sorting, and detail dialogs work
 - zero cards appear without a real catalogue
 - the page has no horizontal overflow
-- the visible preview URL remains \`http://localhost:4174/\`
+- the visible preview URL remains `http://localhost:4174/`
 
 ## 13. Troubleshooting
 
 ### The menu entry is missing
 
-Check that the Marketplace item is inside the existing \`items\` array, both registration objects use \`hudiy_marketplace\`, and Hudiy has been restarted.
+Check that the Marketplace item is inside the existing `items` array, both registration objects use `hudiy_marketplace`, and Hudiy has been restarted.
 
 ### The WebView is blank
 
@@ -523,7 +569,7 @@ Check that all five deployment outputs exist under:
 $HOME/.hudiy/share/marketplace/hudiy-marketplace/
 ~~~
 
-Also verify the file URL in \`applications.json\` and that every HTML asset path is relative.
+Also verify the file URL in `applications.json` and that every HTML asset path is relative.
 
 ### The catalogue is empty
 
@@ -537,11 +583,11 @@ Do not add test cards to diagnose this state.
 
 ### Back does not return to Hudiy
 
-The page must return \`false\` from \`window.hudiy.onGoBack\` when no Marketplace dialog is open.
+The page must return `false` from `window.hudiy.onGoBack` when no Marketplace dialog is open.
 
 ### The theme does not update
 
-Confirm that the page is running inside Hudiy, that \`window.hudiy.colorScheme\` exists, and that \`onColorSchemeChanged\` is assigned after the page loads.
+Confirm that the page is running inside Hudiy, that `window.hudiy.colorScheme` exists, and that `onColorSchemeChanged` is assigned after the page loads.
 
 ## 14. Sources and license
 
