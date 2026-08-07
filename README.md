@@ -1,222 +1,184 @@
 # Hudiy Marketplace
 
-Hudiy Marketplace is a single-page community catalogue embedded in Hudiy as a normal WebView application. It lists community-made apps, widgets, overlays, and declarative configurations when a real catalogue is connected.
+Hudiy Marketplace is the source of a Hudiy custom WebView application. It is designed to be loaded by Hudiy's existing embedded Chromium view and connected to Hudiy through the official \`window.hudiy\` bridge.
 
-Every community entry is visibly marked as community-made and unverified. This project never guarantees that a community package is safe, virus-free, compatible, or error-free.
+This is the supported Hudiy integration model for custom HTML/JavaScript applications. Hudiy remains responsible for the native settings frame, navigation, actions, WebView lifecycle, input routing, and theme. The Marketplace supplies only its page and its Marketplace functionality.
 
-This README is based on:
+Every catalogue entry is visibly marked as community-made and unverified. No community package is guaranteed to be safe, virus-free, compatible, or error-free.
 
-- the official [Hudiy source repository and documentation](https://github.com/wiboma/hudiy/blob/main/README.md)
-- the official [Hudiy overview](https://hudiy.eu/overview/)
-- the official [Hudiy product requirements](https://hudiy.eu/product/hudiy/)
-- a read-only inspection of the supplied Hudiy USB installation, which reports Hudiy version 1.24
+## Contents
 
-The USB installation is evidence of one installed Hudiy version. It is not a promise that every future Hudiy release uses identical files or menu structures.
+- [1. Integration model](#1-integration-model)
+- [2. What is in the source tree](#2-what-is-in-the-source-tree)
+- [3. Hudiy compatibility](#3-hudiy-compatibility)
+- [4. Local preview](#4-local-preview)
+- [5. Hudiy WebView integration](#5-hudiy-webview-integration)
+- [6. Registration fragments](#6-registration-fragments)
+- [7. Theme integration](#7-theme-integration)
+- [8. Catalogue and Supabase](#8-catalogue-and-supabase)
+- [9. Upload and installation boundaries](#9-upload-and-installation-boundaries)
+- [10. Security rules](#10-security-rules)
+- [11. Device deployment](#11-device-deployment)
+- [12. Verification](#12-verification)
+- [13. Troubleshooting](#13-troubleshooting)
+- [14. Sources and license](#14-sources-and-license)
 
-## Table of contents
+## 1. Integration model
 
-- [Chapter 1: Project scope](#chapter-1-project-scope)
-- [Chapter 2: How Hudiy integration actually works](#chapter-2-how-hudiy-integration-actually-works)
-- [Chapter 3: Repository layout](#chapter-3-repository-layout)
-- [Chapter 4: Compatibility and requirements](#chapter-4-compatibility-and-requirements)
-- [Chapter 5: Local preview](#chapter-5-local-preview)
-- [Chapter 6: Supabase catalogue](#chapter-6-supabase-catalogue)
-- [Chapter 7: Install the official Hudiy base system](#chapter-7-install-the-official-hudiy-base-system)
-- [Chapter 8: Install Hudiy Marketplace into Hudiy](#chapter-8-install-hudiy-marketplace-into-hudiy)
-- [Chapter 9: Configuration files and registration](#chapter-9-configuration-files-and-registration)
-- [Chapter 10: WebView bridge and theming](#chapter-10-webview-bridge-and-theming)
-- [Chapter 11: Catalogue, upload, and installation boundaries](#chapter-11-catalogue-upload-and-installation-boundaries)
-- [Chapter 12: Security model](#chapter-12-security-model)
-- [Chapter 13: Verification and troubleshooting](#chapter-13-verification-and-troubleshooting)
-- [Chapter 14: Backup, rollback, and release checklist](#chapter-14-backup-rollback-and-release-checklist)
-- [Chapter 15: License and sources](#chapter-15-license-and-sources)
+Hudiy Marketplace is not a second launcher, kiosk, or settings application.
 
-## Chapter 1: Project scope
+The actual integration is:
 
-Hudiy Marketplace is a Hudiy application, not a replacement launcher.
+~~~text
+Hudiy native application
+└── existing Hudiy WebView
+    └── this source tree's index.html
+        ├── app.js
+        ├── styles.css
+        ├── hudiy-theme.json
+        └── assets/MaterialSymbolsRounded.ttf
+~~~
 
-Hudiy supplies:
+Hudiy owns the outer application. The Marketplace page must not create:
 
-- the surrounding settings frame
-- the settings navigation and back action
-- the embedded Chromium WebView
-- the native application action system
-- the Hudiy JavaScript bridge
-- the active Material 3 colour scheme
-
-This project supplies only the Marketplace content inside that WebView:
-
-- one visible page: index.html
-- search by name, type, author, and description
-- filters for apps, widgets, overlays, and configurations
-- sorting by popularity, recency, and name
-- plugin detail dialogs
-- visible permissions and compatibility information
-- an empty state when no real catalogue is connected
-- an upload architecture boundary without simulated uploads
-- an explicit hand-off to a future safe Hudiy installation interface
-
-The project deliberately does not create:
-
-- a second sidebar
 - a second Hudiy header
+- a second sidebar
+- a second navigation system
 - a kiosk mode
-- another HTML page
-- fake catalogue cards
-- demo names or placeholder plugins
-- automatic community-package installation
-- arbitrary shell, Python, systemd, package-manager, or filesystem execution
+- a separate startup process
+- a permanent Node.js service on the device
 
-## Chapter 2: How Hudiy integration actually works
+The local Node server is only for development preview and an optional catalogue proxy. Hudiy loads the static WebView source directly.
 
-The official Hudiy documentation describes custom applications, widgets, and overlays as HTML/JavaScript content displayed in an embedded Chromium WebView. A WebView may load a local HTML file or a web URL. Hudiy exposes a special JavaScript object named window.hudiy for deeper integration.
-
-The Marketplace uses the local-file model for the device installation:
+The fixed technical names are:
 
 ~~~text
-file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html
+window.hudiy
+hudiy_marketplace
+~/.hudiy
+hudiy-theme.json
 ~~~
 
-All application assets use relative paths so the same page works in:
-
-~~~text
-http://localhost:4174/
-~~~
-
-and in the Hudiy WebView under:
-
-~~~text
-~/.hudiy/share/marketplace/hudiy-marketplace/
-~~~
-
-The local Node server is a development preview and catalogue proxy. It is not required as a permanent service on the Raspberry Pi when the static files are installed into Hudiy.
-
-Hudiy actions must be unique. The technical action used by this project is:
+The fixed application action is:
 
 ~~~text
 hudiy_marketplace
 ~~~
 
-Do not rename this action without updating every registration and integration test.
+The source entry point used by the existing Hudiy installation is:
 
-## Chapter 3: Repository layout
+~~~text
+file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html
+~~~
+
+## 2. What is in the source tree
 
 ~~~text
 index.html
-    The only visible HTML page.
+    The only visible page. It contains the Marketplace content and dialogs.
 
 app.js
-    Catalogue loading, validation, search, filtering, sorting, dialogs,
-    safe links, theme application, and the Hudiy bridge.
+    Catalogue loading and validation, search, filters, sorting, dialogs,
+    safe links, theme handling, and official Hudiy callbacks.
 
 styles.css
-    Responsive Material 3-style presentation for touchscreens.
+    Material 3-style responsive WebView presentation.
 
 hudiy-theme.json
-    Theme fallback used during local preview when the Hudiy bridge is absent.
+    Local-preview theme fallback.
 
 server.mjs
-    Local static-file server and optional catalogue proxy on port 4174.
+    Development HTTP server and optional catalogue proxy. Not a device runtime dependency.
 
 package.json
-    Node scripts. The server uses Node built-ins and has no runtime dependency install.
+    Node scripts. The server uses Node built-ins.
 
 style.md
-    Visual rules, theme tokens, responsive rules, catalogue contract,
-    backend notes, permissions, and security boundaries.
+    Visual rules, bridge contract, catalogue contract, backend boundary,
+    upload rules, installation boundary, and security rules.
 
 assets/MaterialSymbolsRounded.ttf
-    The Material Symbols Rounded font copied from the supplied Hudiy installation.
+    Material Symbols Rounded font used by the page.
 
 integration/hudiy/applications.marketplace.json
-    The application object to add to Hudiy applications.json.
+    Application registration fragment.
 
 integration/hudiy/applications_menu.marketplace.json
-    The menu item object to add to Hudiy applications_menu.json.
+    Menu item registration fragment.
 
 scripts/verify-hudiy-integration.mjs
-    Automated checks for registration, paths, empty-catalog behaviour,
-    URL validation, and required bridge names.
+    Integration and empty-catalogue checks.
 
 LICENSE
     Project license.
 ~~~
 
-There are no additional pages, fixtures, simulated uploads, or demo data.
+There are no demo cards, fixture objects, fake uploads, simulated installations, or additional HTML pages.
 
-## Chapter 4: Compatibility and requirements
+## 3. Hudiy compatibility
 
-### 4.1 Official Hudiy hardware and operating systems
+The official Hudiy documentation supports custom HTML/JavaScript applications, widgets, and overlays through an embedded Chromium WebView. The page can communicate with Hudiy through the \`window.hudiy\` object and the Hudiy API.
 
-The official Hudiy product documentation lists support for:
-
-- Raspberry Pi Zero 2
-- Raspberry Pi 3B and 3B+
-- Raspberry Pi 4B
-- Raspberry Pi 5
-- x86_64 systems
-
-The official product page specifies Raspberry Pi OS Desktop 64-bit variants for supported Raspberry Pi hardware and Debian Trixie 64-bit for x86_64. Check the official documentation before installing because supported operating-system combinations can change.
-
-The supplied USB installation was inspected without writing to it. It contains:
+The supplied USB installation reports:
 
 ~~~text
 Hudiy version: 1.24
-Configuration directory: .hudiy/share/config/
-Marketplace directory: .hudiy/share/marketplace/hudiy-marketplace/
-Application config: .hudiy/share/config/applications.json
-Menu config: .hudiy/share/config/applications_menu.json
+Marketplace source directory: .hudiy/share/marketplace/hudiy-marketplace/
+Application configuration: .hudiy/share/config/applications.json
+Menu configuration: .hudiy/share/config/applications_menu.json
 ~~~
 
-### 4.2 Device requirements
+The USB contains the installed Hudiy binary and the existing Marketplace WebView source. The installer archive contains architecture-specific installer binaries, not the native Hudiy core source. This repository therefore integrates with the existing Hudiy WebView/API contract; it does not pretend to rebuild the proprietary Hudiy binary.
 
-The official installation material states that the device should have:
+The official Hudiy platform documentation lists Raspberry Pi Zero 2, 3B, 3B+, 4B, 5, and x86_64 targets. Always verify the target Hudiy release and operating system before deployment.
 
-- at least 8 GB of free storage after the operating system
-- a display up to 1920x1080
-- active internet access for components and license validation
-- a clean supported desktop operating-system image
+## 4. Local preview
 
-An SSD or NVMe device is recommended where the hardware supports it.
+### 4.1 Start
 
-### 4.3 Local development requirements
-
-- Node.js 20 or newer is recommended.
-- A Chromium-based browser is recommended.
-- Internet access is required when the configured catalogue is remote.
-- No package installation is required for the current server because it uses Node built-ins.
-
-## Chapter 5: Local preview
-
-### 5.1 Recommended one-liner
+The recommended one-liner is:
 
 ~~~bash
 git clone --depth 1 https://github.com/EpicNori/Hudiy-Marketplace.git && cd Hudiy-Marketplace && npm start
 ~~~
 
-Open the clean URL:
+Open the clean preview URL:
 
 ~~~text
 http://localhost:4174/
 ~~~
 
-The server binds to 127.0.0.1. Port 4174 is intentional because another local service previously occupied the original preview port.
+The server listens only on 127.0.0.1. Port 4174 is intentional.
 
-### 5.2 Windows PowerShell
+### 4.2 PowerShell
 
 ~~~powershell
 git clone --depth 1 https://github.com/EpicNori/Hudiy-Marketplace.git; Set-Location Hudiy-Marketplace; npm start
 ~~~
 
-### 5.3 Local configuration
+### 4.3 Empty catalogue behaviour
 
-Copy the example file:
+The preview is deliberately empty when no real catalogue is connected. It must never render placeholder data.
+
+A safe catalogue response is:
+
+~~~json
+{
+  "plugins": []
+}
+~~~
+
+The page must show zero cards in this state.
+
+### 4.4 Local environment
+
+Create a local environment file when using the proxy:
 
 ~~~bash
 cp .env.example .env
 ~~~
 
-Set only public catalogue configuration or server-side proxy configuration:
+Example:
 
 ~~~dotenv
 PORT=4174
@@ -224,207 +186,76 @@ SUPABASE_URL=https://mdzsxuxqrhnadmkroalq.supabase.co
 SUPABASE_ANON_KEY=sb_publishable_replace_with_project_publishable_key
 ~~~
 
-The .env file is ignored by Git. Never put a Supabase service key, secret key, database password, or OAuth client secret into the browser, repository, USB package, or Hudiy WebView.
+Never put a service key, secret key, password, or OAuth secret in the page, repository, or device WebView.
 
-If no real catalogue is reachable, the page must remain empty. This is intentional. It must never invent cards to make the interface look populated.
+## 5. Hudiy WebView integration
 
-### 5.4 URL and cache behaviour
+### 5.1 Official bridge
 
-The visible URL remains:
+The page reads:
+
+~~~javascript
+window.hudiy.colorScheme
+window.hudiy.marketplaceCatalog
+window.hudiy.inputFocus
+window.hudiy.activated
+~~~
+
+The page assigns:
+
+~~~javascript
+window.hudiy.onAttached
+window.hudiy.onColorSchemeChanged
+window.hudiy.onInputFocusChanged
+window.hudiy.onActivatedChanged
+window.hudiy.onMoveToNextControl
+window.hudiy.onMoveToPreviousControl
+window.hudiy.onTriggered
+window.hudiy.onGoBack
+~~~
+
+The official Hudiy callbacks are invoked without requiring arguments. The page reads the current state from \`window.hudiy\`.
+
+The Back contract is:
+
+- \`true\`: the Marketplace handled the event, for example by closing a dialog
+- \`false\`: Hudiy performs its native Back navigation
+
+The page also implements focus movement for Hudiy key input. Touch input remains handled by Chromium.
+
+### 5.2 Catalogue sources
+
+The page checks catalogue sources in this order:
+
+1. \`window.hudiy.marketplaceCatalog\`
+2. configured HTTP or HTTPS catalogue endpoint
+3. local \`/api/catalog\` during preview
+4. no catalogue, resulting in the empty state
+
+The page never falls back to demo data.
+
+### 5.3 File URL compatibility
+
+All local assets use relative paths:
 
 ~~~text
-http://localhost:4174/
+styles.css
+app.js
+hudiy-theme.json
+assets/MaterialSymbolsRounded.ttf
 ~~~
 
-The application removes technical cache parameters from the visible address with history.replaceState. Cache-busting is not allowed to reintroduce old demo data, and no visible rev, fresh, or cache query parameter is required for normal use.
+The page uses a normal deferred script rather than relying on a module loader. This keeps the source compatible with Hudiy's local \`file://\` WebView and with the HTTP preview.
 
-## Chapter 6: Supabase catalogue
+## 6. Registration fragments
 
-### 6.1 Current project
-
-The connected Supabase project is:
-
-~~~text
-Project name: hudiy-marketplace
-Project reference: mdzsxuxqrhnadmkroalq
-Region: eu-central-1
-~~~
-
-The repository is backend-agnostic. Supabase is the current implementation; Firebase or another backend can provide the same catalogue contract later.
-
-The current database design contains:
-
-- plugins
-- plugin_versions
-- plugin_uploads
-- plugin_downloads
-- plugin_ratings
-- private Storage bucket: plugin-packages
-
-Row Level Security is enabled for Marketplace tables. The public catalogue must expose only published records.
-
-### 6.2 Catalogue transport
-
-The frontend can receive a catalogue from:
-
-1. window.hudiy.marketplaceCatalog when Hudiy supplies one directly
-2. a configured safe HTTP or HTTPS catalogue endpoint
-3. the local /api/catalog proxy
-4. a configured local JSON file during controlled development
-
-The local server can proxy Supabase through /api/catalog. It accepts only HTTP or HTTPS upstream URLs and returns an empty safe response when the upstream is unavailable.
-
-Check the local response:
-
-~~~bash
-curl http://localhost:4174/api/catalog
-~~~
-
-A valid empty response is:
-
-~~~json
-{
-  "plugins": [],
-  "catalogConnected": true
-}
-~~~
-
-A temporarily unavailable catalogue may return an error status with plugins: []. The UI still shows no plugin cards.
-
-### 6.3 Manifest contract
-
-Every published entry must contain a validated manifest:
-
-~~~json
-{
-  "id": "stable-plugin-id",
-  "name": "Community name",
-  "description": "A useful description.",
-  "author": "Community author",
-  "version": "1.0.0",
-  "type": "app",
-  "supportedHudiyVersion": ">=1.0.0",
-  "permissions": [],
-  "entrypoints": {
-    "webview": "dist/index.js"
-  },
-  "files": [
-    "dist/index.js"
-  ],
-  "checksum": "sha256:..."
-}
-~~~
-
-Allowed type values are:
-
-~~~text
-app
-widget
-overlay
-configuration
-~~~
-
-The UI also displays downloads, rating, and updated date when the catalogue supplies them.
-
-Invalid entries are discarded before rendering. Required fields must be non-empty, paths must be allowed, the checksum must use the sha256: form, and external links must use only http:// or https://.
-
-## Chapter 7: Install the official Hudiy base system
-
-This project does not replace the official Hudiy installer.
-
-The supplied USB contains hudiy_installer.tar.gz and INSTALL.pdf. The installer archive contains architecture-specific installer files. Follow the official instructions for the operating-system image, hardware, order number, and license.
-
-The documented installation sequence is:
-
-1. Start with a clean supported desktop installation.
-2. Copy hudiy_installer.tar.gz unchanged to the target device.
-3. Do not unpack the archive before copying it to the target device.
-4. Open a terminal locally or connect through SSH.
-5. Extract the archive on the target device.
-6. Enter the installer directory.
-7. Make run.sh executable.
-8. Run ./run.sh.
-9. Enter the Hudiy order number when requested.
-10. Reboot when the installer completes.
-
-The core command sequence on the target device is:
-
-~~~bash
-tar -xzvf hudiy_installer.tar.gz
-cd hudiy_installer
-chmod +x run.sh
-./run.sh
-sudo reboot
-~~~
-
-Do not execute this sequence on a Windows workstation. It belongs to the supported Hudiy target system.
-
-## Chapter 8: Install Hudiy Marketplace into Hudiy
-
-Install the official Hudiy base system first. Then copy the Marketplace static files into the existing Hudiy home directory.
-
-### 8.1 Back up the existing files
-
-Run this on the Hudiy device:
-
-~~~bash
-set -eu
-STAMP=$(date +%Y%m%d-%H%M%S)
-BACKUP=$HOME/.hudiy/share/config/marketplace-backup-$STAMP
-mkdir -p "$BACKUP"
-cp -a "$HOME/.hudiy/share/config/applications.json" "$BACKUP/"
-cp -a "$HOME/.hudiy/share/config/applications_menu.json" "$BACKUP/"
-if [ -d "$HOME/.hudiy/share/marketplace/hudiy-marketplace" ]; then
-  cp -a "$HOME/.hudiy/share/marketplace/hudiy-marketplace" "$BACKUP/"
-fi
-printf 'Backup created at %s\n' "$BACKUP"
-~~~
-
-### 8.2 Copy the static files
-
-From a checked-out repository or release directory on the device:
-
-~~~bash
-set -eu
-TARGET=$HOME/.hudiy/share/marketplace/hudiy-marketplace
-mkdir -p "$TARGET/assets"
-cp -f index.html app.js styles.css hudiy-theme.json "$TARGET/"
-cp -f assets/MaterialSymbolsRounded.ttf "$TARGET/assets/"
-~~~
-
-The device entry point must exist at:
-
-~~~text
-$HOME/.hudiy/share/marketplace/hudiy-marketplace/index.html
-~~~
-
-### 8.3 Register the application and menu item
-
-Merge the two supplied JSON objects into the existing Hudiy configuration. Do not replace a complete Hudiy configuration file with a small Marketplace fragment.
-
-The exact objects are documented in [integration/hudiy/applications.marketplace.json](integration/hudiy/applications.marketplace.json) and [integration/hudiy/applications_menu.marketplace.json](integration/hudiy/applications_menu.marketplace.json).
-
-### 8.4 Restart Hudiy
-
-After validating the JSON, use the normal Hudiy restart flow or reboot:
-
-~~~bash
-sudo reboot
-~~~
-
-Open Hudiy Marketplace through the normal Hudiy settings. Hudiy must continue to own the surrounding frame, navigation, and back action.
-
-## Chapter 9: Configuration files and registration
-
-### 9.1 applications.json
-
-The official Hudiy configuration uses:
+The official Hudiy application configuration is:
 
 ~~~text
 $HOME/.hudiy/share/config/applications.json
 ~~~
 
-Add this object to the existing applications array:
+Add the object from \`integration/hudiy/applications.marketplace.json\` to the existing applications array:
 
 ~~~json
 {
@@ -437,17 +268,13 @@ Add this object to the existing applications array:
 }
 ~~~
 
-The file URL is the actual integration path inspected on the supplied USB. If the Hudiy user home differs from /home/pi, use the path expected by that installation and verify it before restart.
-
-### 9.2 applications_menu.json
-
-The official Hudiy menu configuration uses:
+The official menu configuration is:
 
 ~~~text
 $HOME/.hudiy/share/config/applications_menu.json
 ~~~
 
-It contains categories and items arrays. Add this object to the existing items array:
+Add the object from \`integration/hudiy/applications_menu.marketplace.json\` to the existing \`items\` array:
 
 ~~~json
 {
@@ -459,47 +286,25 @@ It contains categories and items arrays. Add this object to the existing items a
 }
 ~~~
 
-The supplied USB uses the same schema. Preserve existing categories and items. The Marketplace item is not a complete replacement for applications_menu.json.
+These files are fragments. They must not replace the complete Hudiy configuration files.
 
-### 9.3 Validate before restart
+## 7. Theme integration
 
-Use a JSON parser on the device:
-
-~~~bash
-node -e "const fs=require('fs'); for (const f of process.argv.slice(1)) JSON.parse(fs.readFileSync(f,'utf8')); console.log('JSON valid')" "$HOME/.hudiy/share/config/applications.json" "$HOME/.hudiy/share/config/applications_menu.json"
-~~~
-
-If Node.js is not available on the target, use the JSON validation method already provided by the Hudiy image or validate the files on a trusted development machine before copying them.
-
-## Chapter 10: WebView bridge and theming
-
-### 10.1 Official bridge behaviour
-
-The official Hudiy documentation defines these relevant WebView bridge members:
+The page reads the live Hudiy colour scheme from:
 
 ~~~javascript
 window.hudiy.colorScheme
-window.hudiy.onColorSchemeChanged
-window.hudiy.onGoBack
-window.hudiy.onInputFocusChanged
-window.hudiy.onActivatedChanged
-window.hudiy.onMoveToNextControl
-window.hudiy.onMoveToPreviousControl
-window.hudiy.onTriggered
 ~~~
 
-The official colour-scheme callback is invoked when the scheme changes and does not require a colour-scheme argument. The Marketplace therefore reads window.hudiy.colorScheme again inside the callback.
+It reacts to:
 
-The official onGoBack callback returns a Boolean:
+~~~javascript
+window.hudiy.onColorSchemeChanged = function () {
+  // app.js reads window.hudiy.colorScheme again.
+};
+~~~
 
-- true means the WebView handled the back action
-- false lets Hudiy perform its normal back navigation
-
-The Marketplace returns true when it closes an open dialog and false when Hudiy should handle navigation.
-
-### 10.2 Theme tokens
-
-The Marketplace supports these tokens:
+Supported roles:
 
 ~~~text
 background
@@ -517,121 +322,160 @@ error
 tertiary
 ~~~
 
-The local fallback is:
+When the bridge is absent in local preview, \`hudiy-theme.json\` is loaded as the fallback. A live Hudiy theme always takes precedence.
+
+## 8. Catalogue and Supabase
+
+### 8.1 Current backend
+
+The current project is connected to the Supabase project:
 
 ~~~text
-hudiy-theme.json
+Project: hudiy-marketplace
+Reference: mdzsxuxqrhnadmkroalq
+Region: eu-central-1
 ~~~
 
-The fallback is used only when the bridge is unavailable in local preview. When Hudiy supplies a colour scheme, the bridge takes precedence. Both light and dark themes are supported.
-
-### 10.3 Touch and responsive behaviour
-
-The UI uses Material 3-style surfaces, typography, states, and colour roles. Touch targets are at least 44 CSS pixels. The layout is designed for:
-
-- narrow mobile preview widths
-- tablet widths
-- wide Hudiy touchscreens
-
-The page must not create horizontal overflow. The Hudiy frame and navigation remain outside the Marketplace page.
-
-## Chapter 11: Catalogue, upload, and installation boundaries
-
-### 11.1 Community uploads
-
-The intended upload flow is:
-
-1. Sign in with Google through the selected backend.
-2. Upload a package and manifest.
-3. Validate the manifest and package before publication.
-4. Store the package in private Storage.
-5. Review or approve the record.
-6. Publish only the validated version.
-7. Expose only published metadata to the public catalogue.
-
-The current local interface does not simulate a login, upload, or installation. The upload panel explicitly reports when no upload backend is connected.
-
-### 11.2 Required manifest fields
-
-An upload must provide:
+The intended resources are:
 
 ~~~text
-id
-name
-description
-author
-version
-type
-supportedHudiyVersion
-permissions
-entrypoints
-files
-checksum
+plugins
+plugin_versions
+plugin_uploads
+plugin_downloads
+plugin_ratings
+private Storage bucket: plugin-packages
 ~~~
 
-The server must also validate:
+Row Level Security must expose only published catalogue metadata to public readers.
 
-- stable identifiers and version format
-- allowed plugin type
-- allowed file extensions
-- allowed relative paths
-- entrypoints contained in files
-- checksum matching the stored package
-- package size limits
-- no path traversal
-- no executable shell or system payloads
-- no automatic systemd units
-- no package-manager instructions
-- no arbitrary absolute filesystem paths
+The frontend remains backend-agnostic. Firebase can provide the same contract using Google Sign-In, Firestore, Cloud Storage, and Security Rules.
 
-### 11.3 Explicit installation boundary
+### 8.2 Manifest
 
-The Marketplace does not install files by itself.
+A published entry must contain:
 
-After a user explicitly chooses installation, the page may pass only the validated plugin id, version, and checksum to a future safe Hudiy installation interface such as:
+~~~json
+{
+  "id": "stable-plugin-id",
+  "name": "Community name",
+  "description": "Description",
+  "author": "Author",
+  "version": "1.0.0",
+  "type": "app",
+  "supportedHudiyVersion": ">=1.0.0",
+  "permissions": [],
+  "entrypoints": {
+    "webview": "dist/index.js"
+  },
+  "files": [
+    "dist/index.js"
+  ],
+  "checksum": "sha256:..."
+}
+~~~
+
+Allowed types:
+
+~~~text
+app
+widget
+overlay
+configuration
+~~~
+
+The detail dialog can display downloads, rating, updated date, permissions, checksum, and supported Hudiy version when supplied.
+
+Invalid entries are rejected before rendering.
+
+## 9. Upload and installation boundaries
+
+### 9.1 Upload
+
+The upload dialog describes the production workflow but does not simulate it.
+
+A production backend must:
+
+1. authenticate the community member with Google OAuth
+2. receive the package and manifest
+3. validate every manifest field
+4. validate package paths, extensions, size, and checksum
+5. store the package privately
+6. review and publish the validated version
+7. expose only published metadata
+
+### 9.2 Installation
+
+The WebView never executes a package and never changes the operating system directly.
+
+After explicit user confirmation, it may pass only:
 
 ~~~javascript
-window.hudiy.installMarketplacePlugin({
+{
   id,
   version,
   checksum
-});
+}
 ~~~
 
-If that interface is missing, the UI refuses installation and explains that the safe Hudiy installation interface is not connected. No community file is executed automatically.
+to:
 
-## Chapter 12: Security model
+~~~javascript
+window.hudiy.installMarketplacePlugin
+~~~
 
-All community entries must remain visibly labelled:
+If that safe native Hudiy installation interface is unavailable, installation is refused. The Marketplace does not silently install files.
+
+## 10. Security rules
+
+Every community entry is visibly labelled community-made and unverified. This is a warning, not a safety approval.
+
+The implementation must:
+
+- never guarantee safety, virus-free operation, or functional correctness
+- render untrusted catalogue values with DOM text nodes
+- allow only \`http://\` and \`https://\` external URLs
+- reject \`javascript:\`, \`data:\`, \`file:\`, and other schemes
+- require explicit user action before installation
+- show permissions before installation
+- validate hashes and versions
+- reject path traversal and absolute paths
+- reject shell, Python, systemd, package-manager, and arbitrary filesystem actions
+- keep package Storage private
+- keep Supabase service and secret keys out of the WebView
+- enforce Supabase RLS or Firebase Security Rules server-side
+
+## 11. Device deployment
+
+Development happens in this repository. Hudiy loads the resulting static WebView source from its existing Marketplace application directory:
 
 ~~~text
-Community-made
-Unverified
+$HOME/.hudiy/share/marketplace/hudiy-marketplace/
 ~~~
 
-This is a warning, not a safety approval.
+The deployment output is:
 
-The security rules are:
+~~~text
+index.html
+app.js
+styles.css
+hudiy-theme.json
+assets/MaterialSymbolsRounded.ttf
+~~~
 
-- never promise security, virus-free operation, or functional correctness
-- escape external data before displaying it
-- use DOM text nodes for untrusted catalogue values
-- allow only http:// and https:// external URLs
-- reject javascript:, data:, file:, and other unsafe URL schemes
-- never automatically execute downloaded files
-- require an explicit user action before installation
-- show requested permissions before installation
-- keep plugin Storage private
-- do not expose Supabase service or secret keys to the WebView
-- use Supabase Row Level Security for catalogue visibility, uploads, versions, downloads, and ratings
-- validate package paths, extensions, hashes, versions, and size limits server-side
-- keep the installation operation inside a restricted Hudiy installation interface
+Deployment does not start a second application. It updates the source files used by the existing Hudiy WebView registration.
 
-A published catalogue record is not a security review. “Published” means only that it passed the configured publication workflow.
+Before deployment:
 
-## Chapter 13: Verification and troubleshooting
+- validate the target Hudiy version
+- preserve the existing Hudiy configuration files
+- merge the two registration fragments into the existing arrays
+- validate JSON
+- restart Hudiy through its normal lifecycle
 
-### 13.1 Required repository checks
+The USB drive is a deployment source for the existing Hudiy installation, not a native Hudiy build tree.
+
+## 12. Verification
 
 Run:
 
@@ -642,130 +486,70 @@ npm run test:integration
 git diff --check
 ~~~
 
-The integration test checks the actual registration fragments, relative WebView paths, required bridge names, safe URL handling, empty-catalog behaviour, and known demo-name absence.
+The integration test verifies:
 
-### 13.2 Functional checks
+- one HTML page
+- relative WebView paths
+- required Hudiy bridge names
+- safe URL validation
+- the empty-catalogue boundary
+- no demo names
+- application and menu registration fragments
+- local preview availability
 
-Verify all of the following:
+Manually verify:
 
+- the page loads from the Hudiy \`file://\` URL
+- the page has no second navigation
+- the live theme changes with Hudiy
+- dialogs close through Hudiy Back
+- keyboard focus callbacks work
+- search, filters, sorting, and detail dialogs work
 - zero cards appear without a real catalogue
-- no demo names appear in the DOM
-- search matches name, type, author, and description
-- type filters work for all four supported types
-- sorting works for popularity, recency, and name
-- the detail dialog shows permissions and compatibility
-- the explicit install action refuses when no safe Hudiy installer is connected
-- a light Hudiy theme is applied
-- a dark Hudiy theme is applied
-- the back callback closes dialogs and otherwise returns control to Hudiy
-- the visible URL remains http://localhost:4174/
-- narrow and wide layouts do not overflow horizontally
+- the page has no horizontal overflow
+- the visible preview URL remains \`http://localhost:4174/\`
 
-### 13.3 The catalogue is empty
+## 13. Troubleshooting
 
-An empty catalogue is expected when no published records are available.
+### The menu entry is missing
 
-Check:
+Check that the Marketplace item is inside the existing \`items\` array, both registration objects use \`hudiy_marketplace\`, and Hudiy has been restarted.
+
+### The WebView is blank
+
+Check that all five deployment outputs exist under:
+
+~~~text
+$HOME/.hudiy/share/marketplace/hudiy-marketplace/
+~~~
+
+Also verify the file URL in \`applications.json\` and that every HTML asset path is relative.
+
+### The catalogue is empty
+
+An empty catalogue is expected when there are no published records or no reachable backend. Check:
 
 ~~~bash
 curl http://localhost:4174/api/catalog
 ~~~
 
-Then check the Supabase project, table permissions, RLS policy, public key, DNS, TLS, and device internet access. Do not add temporary cards to diagnose an empty catalogue.
+Do not add test cards to diagnose this state.
 
-### 13.4 The WebView is blank
+### Back does not return to Hudiy
 
-Check the installed files:
+The page must return \`false\` from \`window.hudiy.onGoBack\` when no Marketplace dialog is open.
 
-~~~bash
-ls -la "$HOME/.hudiy/share/marketplace/hudiy-marketplace"
-test -f "$HOME/.hudiy/share/marketplace/hudiy-marketplace/index.html"
-test -f "$HOME/.hudiy/share/marketplace/hudiy-marketplace/app.js"
-test -f "$HOME/.hudiy/share/marketplace/hudiy-marketplace/styles.css"
-test -f "$HOME/.hudiy/share/marketplace/hudiy-marketplace/hudiy-theme.json"
-test -f "$HOME/.hudiy/share/marketplace/hudiy-marketplace/assets/MaterialSymbolsRounded.ttf"
-~~~
+### The theme does not update
 
-Then confirm that applications.json points to:
+Confirm that the page is running inside Hudiy, that \`window.hudiy.colorScheme\` exists, and that \`onColorSchemeChanged\` is assigned after the page loads.
 
-~~~text
-file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html
-~~~
-
-The relative asset paths are required for the local file WebView.
-
-### 13.5 The menu item is missing
-
-Confirm:
-
-- applications_menu.json contains the Marketplace object inside items
-- applications.json contains the matching application object
-- both use exactly hudiy_marketplace
-- the JSON files are valid
-- the Hudiy process has been restarted
-- the label is Hudiy Marketplace
-- the icon font is available
-
-Hudiy WebView browsing data is documented under:
-
-~~~text
-$HOME/.hudiy/cache/web
-$HOME/.hudiy/storage/web
-~~~
-
-Clear or inspect those locations only when the normal Hudiy troubleshooting process calls for it.
-
-## Chapter 14: Backup, rollback, and release checklist
-
-### 14.1 Rollback
-
-Use the backup created before installation:
-
-~~~bash
-set -eu
-BACKUP=$HOME/.hudiy/share/config/marketplace-backup-YYYYMMDD-HHMMSS
-case "$BACKUP" in
-  "$HOME/.hudiy/share/config/"*) ;;
-  *) echo 'Refusing unsafe backup path'; exit 1 ;;
-esac
-cp -f "$BACKUP/applications.json" "$HOME/.hudiy/share/config/applications.json"
-cp -f "$BACKUP/applications_menu.json" "$HOME/.hudiy/share/config/applications_menu.json"
-rm -rf "$HOME/.hudiy/share/marketplace/hudiy-marketplace"
-if [ -d "$BACKUP/hudiy-marketplace" ]; then
-  cp -a "$BACKUP/hudiy-marketplace" "$HOME/.hudiy/share/marketplace/hudiy-marketplace"
-fi
-sudo reboot
-~~~
-
-Replace the timestamp only after checking that the directory is the intended backup inside the Hudiy configuration directory.
-
-### 14.2 Release checklist
-
-Before distributing a release:
-
-- run both Node syntax checks
-- run the integration test
-- run git diff --check
-- confirm index.html is the only visible HTML page
-- confirm the repository contains no demo data or fake catalogue entries
-- confirm no .env, password, service key, secret key, or private token is staged
-- confirm the catalogue exposes only validated published manifests
-- confirm the application URL is a local file URL for Hudiy
-- confirm relative assets load from a file WebView
-- test light and dark Hudiy themes
-- test search, filters, sorting, dialogs, empty state, and explicit installation
-- test narrow, tablet, and wide touch layouts
-- inspect the exact target Hudiy version before deployment
-
-## Chapter 15: License and sources
-
-See [LICENSE](LICENSE).
+## 14. Sources and license
 
 Primary references:
 
-- [Official Hudiy repository and documentation](https://github.com/wiboma/hudiy)
-- [Official Hudiy README](https://github.com/wiboma/hudiy/blob/main/README.md)
+- [Official Hudiy documentation](https://github.com/wiboma/hudiy/blob/main/README.md)
 - [Official Hudiy overview](https://hudiy.eu/overview/)
-- [Official Hudiy product requirements](https://hudiy.eu/product/hudiy/)
+- [Official Hudiy FAQ](https://hudiy.eu/faq/)
+- [Official Hudiy product page](https://hudiy.eu/product/hudiy/)
 
-The supplied USB installation and INSTALL.pdf were used as local compatibility evidence. They were inspected read-only; the repository does not assume that a future Hudiy release has the same version or filesystem layout.
+See [LICENSE](LICENSE).

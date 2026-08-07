@@ -1,82 +1,347 @@
-# Hudiy Marketplace – Style und Integrationsvertrag
+# Hudiy Marketplace — style and integration contract
 
-## Produktkontext
+## Integration model
 
-Hudiy Marketplace ist eine einzelne WebView-Anwendung innerhalb der normalen Hudiy-Einstellungen. Hudiy liefert den Einstellungsrahmen, die Navigation und die Zurück-Funktion. Die WebView zeigt ausschließlich Marketplace-Inhalte: keine eigene Sidebar, keinen Kiosk-Modus und keinen zweiten Hudiy-Header.
+Hudiy Marketplace is the source of one Hudiy custom application. It is loaded by Hudiy's embedded Chromium WebView and communicates with Hudiy through the official \`window.hudiy\` bridge.
 
-Auf dem geprüften Hudiy-USB-Stand (`version.txt`: `1.24`) wird die Anwendung über `hudiy_marketplace` und die Datei-URL `file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html` geöffnet. Deshalb verwendet die Anwendung ausschließlich relative Asset- und Theme-Pfade und funktioniert sowohl als lokale HTTP-Preview als auch direkt aus der Hudiy-WebView.
+Hudiy owns:
 
-Technische Bridge-Namen bleiben unverändert: `window.hudiy`, `hudiy_marketplace`, `~/.hudiy` und `hudiy-theme.json`.
+- the settings frame
+- the surrounding navigation
+- the native Back action
+- the WebView lifecycle
+- the native Material 3 colour scheme
+- native actions and APIs
 
-## Visuelles System
+This project owns only the Marketplace content inside that WebView. It must not add a product sidebar, kiosk shell, duplicate Hudiy header, second navigation system, or second HTML page.
 
-- Material-3-inspiriertes Layout mit ruhigen Oberflächen, großen Touch-Zielen und klarer Hierarchie.
-- Alle interaktiven Ziele sind mindestens 44 CSS-Pixel hoch.
-- Die Tokens liegen als CSS-Variablen in `styles.css`. `hudiy-theme.json` ist ausschließlich der lokale Preview-Fallback.
-- Unterstützte Theme-Tokens: `background`, `surface`, `surfaceContainer`, `surfaceContainerHigh`, `onBackground`, `onSurface`, `onSurfaceVariant`, `primary`, `onPrimary`, `outline`, `outlineVariant`, `error`, `tertiary`.
-- Helle und dunkle Hudiy-Themes werden durch die gelieferten Farbwerte unterstützt; die Seite erzwingt kein eigenes Produkt-Theme.
-- Responsive Regeln: einspaltig bei schmalen Touchscreens, zweispaltig auf mittleren Breiten und dreispaltig auf breiten Hudiy-Touchscreens. Die Seite hat keine horizontale Überbreite.
-- Sichtbare Produkttexte verwenden ausschließlich „Hudiy“. Community-Inhalte dürfen ihren eigenen Namen tragen, werden aber als „Community-made · ungeprüft“ markiert.
+The local preview server exists only for development and the optional catalogue proxy. The Hudiy application itself loads \`index.html\` directly from:
 
-## Theme-Bridge
+~~~text
+file:///home/pi/.hudiy/share/marketplace/hudiy-marketplace/index.html
+~~~
 
-Beim Start liest `app.js` zuerst `window.hudiy.colorScheme`. Wenn keine Bridge vorhanden ist, wird `hudiy-theme.json` geladen. Änderungen werden über den Hudiy-Callback `hudiy.onColorSchemeChanged` verarbeitet; zusätzlich wird ein `colorSchemeChanged`-Event unterstützt. Die WebView registriert außerdem `hudiy.onGoBack`, gibt bei geschlossenen Dialogen aber `false` zurück, damit Hudiy die normale Zurück-Navigation übernimmt. Nur bekannte Tokens und sichere Hex-/RGB-Farbwerte werden in CSS geschrieben.
+The source uses relative asset paths so the same WebView source can run from the local preview and from the Hudiy file URL.
 
-## Katalogvertrag
+The following technical names are fixed:
 
-Der Standard-Endpunkt ist `/api/catalog`. Die Antwort darf entweder ein Array oder `{ "plugins": [] }` sein. Jeder veröffentlichte Eintrag muss mindestens dieses Manifest erfüllen:
+~~~text
+window.hudiy
+hudiy_marketplace
+~/.hudiy
+hudiy-theme.json
+~~~
 
-```json
+## Visual system
+
+- Material 3 surfaces, typography, states, and colour roles.
+- Touch targets are at least 44 CSS pixels.
+- No horizontal page overflow.
+- Responsive layouts for narrow phones, tablets, and wide Hudiy touchscreens.
+- One-column layout at narrow widths, two columns at medium widths, and three columns at wide widths.
+- Light and dark Hudiy colour schemes are supported.
+- All community entries visibly use the labels Community-made and unverified.
+- Community data is rendered through DOM text nodes, never as untrusted HTML.
+
+The Marketplace page contains:
+
+- a compact Hudiy context label
+- catalogue status
+- search
+- type filters
+- sort control
+- safety warning
+- catalogue cards
+- detail and upload dialogs
+
+It does not contain a second Hudiy navigation or a separate settings rail.
+
+## Hudiy WebView bridge
+
+The official Hudiy bridge is an object exposed to the page as \`window.hudiy\`.
+
+The integration reads:
+
+~~~javascript
+window.hudiy.colorScheme
+window.hudiy.marketplaceCatalog
+window.hudiy.inputFocus
+window.hudiy.activated
+~~~
+
+The integration assigns these official callbacks:
+
+~~~javascript
+window.hudiy.onAttached
+window.hudiy.onColorSchemeChanged
+window.hudiy.onInputFocusChanged
+window.hudiy.onActivatedChanged
+window.hudiy.onMoveToNextControl
+window.hudiy.onMoveToPreviousControl
+window.hudiy.onTriggered
+window.hudiy.onGoBack
+~~~
+
+Hudiy invokes the colour, input-focus, activation, trigger, and attachment callbacks without requiring arguments. The page reads the current state again from the bridge.
+
+\`onGoBack\` returns:
+
+- \`true\` when the page closes an open Marketplace dialog
+- \`false\` when Hudiy must perform its native Back navigation
+
+The page does not call a missing native installation function. If \`window.hudiy.installMarketplacePlugin\` is not provided by the future safe Hudiy installation layer, installation is refused with an explanatory message.
+
+## Theme contract
+
+The page first reads:
+
+~~~javascript
+window.hudiy.colorScheme
+~~~
+
+It then listens for:
+
+~~~javascript
+window.hudiy.onColorSchemeChanged = function () {
+  // Read window.hudiy.colorScheme again.
+};
+~~~
+
+The supported Material 3 roles are:
+
+~~~text
+background
+surface
+surfaceContainer
+surfaceContainerHigh
+onBackground
+onSurface
+onSurfaceVariant
+primary
+onPrimary
+outline
+outlineVariant
+error
+tertiary
+~~~
+
+When the Hudiy bridge is unavailable during local preview, \`hudiy-theme.json\` is loaded as the fallback. The fallback is not a second theme system and must never override a live Hudiy colour scheme.
+
+Only validated hexadecimal and RGB/RGBA colour strings are written to CSS variables.
+
+## Catalogue contract
+
+The default local endpoint is:
+
+~~~text
+/api/catalog
+~~~
+
+The response may be either an array or an object containing a \`plugins\` array:
+
+~~~json
+{
+  "plugins": []
+}
+~~~
+
+A catalogue response with no published entries is valid. It must produce the empty state and zero cards.
+
+A published manifest must contain:
+
+~~~json
 {
   "id": "stable-plugin-id",
-  "name": "Community-Name",
-  "description": "Beschreibung",
-  "author": "Autor",
+  "name": "Community name",
+  "description": "Description",
+  "author": "Author",
   "version": "1.0.0",
   "type": "app",
   "supportedHudiyVersion": ">=1.0.0",
   "permissions": [],
-  "entrypoints": { "webview": "dist/index.js" },
-  "files": ["dist/index.js"],
+  "entrypoints": {
+    "webview": "dist/index.js"
+  },
+  "files": [
+    "dist/index.js"
+  ],
   "checksum": "sha256:..."
 }
-```
+~~~
 
-Erlaubte Typen sind `app`, `widget`, `overlay` und `configuration`. Optionale Felder sind `downloads`, `rating`, `updatedAt` und sichere `links` mit ausschließlich `http://` oder `https://`. Ungültige Einträge werden vollständig verworfen. Ohne erreichbare oder konfigurierte Katalogquelle wird kein Plugin gerendert.
+Allowed type values:
 
-## Supabase-/Firebase-Anbindung
+~~~text
+app
+widget
+overlay
+configuration
+~~~
 
-Die UI bleibt backend-agnostisch. Im Hudiy-Betrieb kann `window.hudiy.marketplaceCatalog` direkt als echter Katalog geliefert werden; alternativ ruft die WebView den verbundenen Supabase-REST-Endpunkt mit dem öffentlichen Publishable-Key ab. Die lokale Preview ist mit dem Projekt `mdzsxuxqrhnadmkroalq` verbunden und proxied den Katalog über `SUPABASE_URL` und `SUPABASE_ANON_KEY` aus `.env`. Nur der öffentliche Publishable-Key wird verwendet; ein Service-Key bleibt ausschließlich serverseitig und wird nicht in das Repository geschrieben. `HUDIY_CATALOG_URL` und `HUDIY_CATALOG_FILE` bleiben als backend-agnostische Alternativen verfügbar.
+Optional display fields include downloads, rating, updatedAt, and links. Links are accepted only when their URL uses \`http://\` or \`https://\`.
 
-Für Supabase wird empfohlen:
+The frontend rejects:
 
-- Google OAuth über Supabase Auth; Redirect-URLs auf die Hudiy-WebView beschränken.
-- PostgreSQL-Tabellen für `plugins`, `plugin_versions`, `downloads` und `ratings`.
-- Storage-Bucket für signierte Plugin-Pakete; Paketpfad aus einer serverseitig vergebenen Plugin-ID ableiten.
-- Row Level Security: Lesen nur veröffentlichter Versionen; Schreiben/Upload nur für authentifizierte Benutzer; Autor- und Versionsänderungen serverseitig prüfen.
-- Uploads erst nach Manifest-, Pfad-, Dateityp-, Größen-, Hash- und Versionsprüfung veröffentlichen.
+- missing required fields
+- unsupported types
+- invalid checksums
+- path traversal
+- absolute paths
+- disallowed file extensions
+- entrypoints outside the allowed package paths
+- unsafe external URL schemes
 
-Firebase kann dieselben Verträge mit Google Sign-In, Firestore, Cloud Storage und Security Rules umsetzen. Die WebView erwartet nur den JSON-Katalogvertrag; Authentifizierung und Veröffentlichung bleiben serverseitig.
+## Backend boundary
 
-## OAuth, Upload und Installation
+The frontend remains backend-agnostic.
 
-Der sichtbare Upload-Dialog beschreibt den sicheren Ablauf, simuliert aber keinen Upload. Ein echter Google-Login wird erst aktiviert, wenn `googleOAuthEndpoint` konfiguriert und sicher ist. Uploads müssen das vollständige Manifest enthalten und vor Veröffentlichung validiert werden. Erlaubt sind nur deklarative Dateien und bekannte Paketpfade; Shell-, Python-, systemd-, Paketmanager- und beliebige Dateipfad-Aktionen sind ausgeschlossen.
+It can receive a real catalogue from:
 
-Installationen passieren ausschließlich nach einer expliziten Benutzeraktion. Die Seite übergibt nur `id`, `version` und `checksum` an `window.hudiy.installMarketplacePlugin`, wenn diese sichere Hudiy-Schnittstelle vorhanden ist. Automatisches Ausführen fremder Dateien, stille Installationen und direkte Systemänderungen sind nicht Teil der WebView.
+1. \`window.hudiy.marketplaceCatalog\`
+2. a configured HTTP or HTTPS catalogue endpoint
+3. the local \`/api/catalog\` proxy
+4. a controlled local JSON file during development
 
-Berechtigungen werden vor jeder Installation im Detaildialog angezeigt.
+Supabase is the current backend implementation. The local preview uses the public publishable key and never exposes a service or secret key to the page.
 
-## Sicherheitsgrenzen
+Google OAuth is part of the planned authenticated upload flow. The OAuth redirect must be restricted to approved Hudiy WebView and development origins.
 
-- Jeder Eintrag ist sichtbar als Community-made und ungeprüft markiert. Es wird niemals Sicherheit, Virenfreiheit oder Fehlerfreiheit garantiert.
-- Katalogwerte werden mit DOM-Textknoten statt unescaped HTML eingesetzt.
-- Externe URLs akzeptieren nur `http://` und `https://`; `javascript:`, `data:`, `file:` und andere Schemes werden verworfen.
-- Externe Links öffnen mit `noopener noreferrer`. Der Server erlaubt nur bekannte Projektdateien und blockiert Pfad-Traversal.
-- Pakete brauchen serverseitige Hash- und Versionsprüfungen sowie eine Allowlist für Dateitypen und Zielpfade.
-- Supabase-RLS bzw. Firebase Security Rules müssen veröffentlichte Versionen, Autorrechte, Uploadstatus und Bewertungsmanipulation getrennt absichern.
+Recommended Supabase resources:
 
-## Lokale Preview und Hudiy-Installation
+- \`plugins\`
+- \`plugin_versions\`
+- \`plugin_uploads\`
+- \`plugin_downloads\`
+- \`plugin_ratings\`
+- private \`plugin-packages\` Storage bucket
 
-`npm start` startet die Preview unter `http://localhost:4174/`. Technische Cache-Parameter werden beim Laden mit `history.replaceState` aus der sichtbaren URL entfernt. Ohne Katalog zeigt die Preview ausschließlich den Leerzustand.
+Row Level Security (RLS) must limit public reads to published records and limit writes to authenticated, validated workflows.
 
-Für eine Hudiy-/Pi-Installation wird die Anwendung nach `~/.hudiy/share/marketplace/hudiy-marketplace/` kopiert. Der Eintrag unter `integration/hudiy/applications.marketplace.json` folgt dem geprüften Hudiy-Schema mit `action`, Datei-URL, Audio-Fokus und Zoom-Faktor. Der Menüeintrag unter `integration/hudiy/applications_menu.marketplace.json` verwendet die reale Hudiy-Struktur mit Kategorie, Label, Material-Symbol und Action. Der Installer auf dem USB-Stick unterstützt `trixie_aarch64`, `bookworm_aarch64` und `trixie_x86_64`; für Raspberry Pi ist damit der 64-bit Pi-Installationsweg abgedeckt.
+Firebase can provide the same contract using Google Sign-In, Firestore, Cloud Storage, and Security Rules.
+
+## Upload boundary
+
+The upload dialog describes the intended workflow but does not simulate a login or upload.
+
+The production workflow is:
+
+1. authenticate through the selected backend
+2. upload a package and manifest
+3. validate the package server-side
+4. verify paths, extensions, size, version, and checksum
+5. store the package privately
+6. review and publish the validated version
+7. expose only published metadata to the public catalogue
+
+No package may contain or request:
+
+- shell commands
+- Python execution
+- systemd units
+- package-manager commands
+- arbitrary absolute filesystem paths
+- automatic startup hooks
+- silent installation
+
+## Installation boundary
+
+The Marketplace does not execute or install community files.
+
+After explicit user confirmation, the page may pass only:
+
+~~~javascript
+{
+  id,
+  version,
+  checksum
+}
+~~~
+
+to the safe Hudiy installation interface:
+
+~~~javascript
+window.hudiy.installMarketplacePlugin
+~~~
+
+The native Hudiy installation layer must perform the final validation, permission review, package retrieval, checksum verification, and restricted installation. The WebView must not make direct system changes.
+
+## URL and cache rules
+
+The normal visible URL is:
+
+~~~text
+http://localhost:4174/
+~~~
+
+Technical cache keys such as \`rev\`, \`fresh\`, and \`cache\` are removed with \`history.replaceState\`. They must never re-enable demo data or appear in the normal visible URL.
+
+External URLs are accepted only when their protocol is \`http:\` or \`https:\`. The schemes \`javascript:\`, \`data:\`, \`file:\`, and all other schemes are rejected.
+
+## Hudiy registration
+
+The application registration object is stored in:
+
+~~~text
+integration/hudiy/applications.marketplace.json
+~~~
+
+The menu item fragment is stored in:
+
+~~~text
+integration/hudiy/applications_menu.marketplace.json
+~~~
+
+The runtime Hudiy files use:
+
+~~~text
+$HOME/.hudiy/share/config/applications.json
+$HOME/.hudiy/share/config/applications_menu.json
+$HOME/.hudiy/share/marketplace/hudiy-marketplace/
+~~~
+
+The two JSON fragments must be merged into the existing Hudiy arrays. They are not replacements for the complete Hudiy configuration files.
+
+The action name must remain unique:
+
+~~~text
+hudiy_marketplace
+~~~
+
+## Local preview
+
+Run:
+
+~~~bash
+npm start
+~~~
+
+The preview is:
+
+~~~text
+http://localhost:4174/
+~~~
+
+The preview must show zero cards when no real catalogue is connected. It must not contain demo fixtures, fake uploads, simulated installations, or placeholder plugin names.
+
+## Verification
+
+Run:
+
+~~~bash
+node --check app.js
+node --check server.mjs
+npm run test:integration
+git diff --check
+~~~
+
+Also verify manually:
+
+- the page loads from a Hudiy \`file://\` URL
+- all CSS, JavaScript, font, and theme paths remain relative
+- Hudiy Back closes dialogs and otherwise leaves the page
+- light and dark colour changes are applied
+- keyboard callbacks can move focus and trigger controls
+- search, filters, sorting, and detail dialogs work
+- no cards appear without a real catalogue
+- no unsafe URL is accepted
+- no horizontal overflow occurs
