@@ -36,6 +36,26 @@ npm start
 
 Open [http://localhost:4174/](http://localhost:4174/). The page intentionally shows no cards until a real catalogue is reachable.
 
+### One-liner: install the WebView source from GitHub
+
+Run this as one command on the prepared Hudiy device. It downloads the repository into a temporary directory, copies only the five static WebView files, and removes the temporary checkout. It does not overwrite Hudiy configuration and does not install a community plugin:
+
+~~~bash
+bash -c 'set -euo pipefail; tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; git clone --depth 1 https://github.com/EpicNori/Hudiy-Marketplace.git "$tmp/repo"; target="$HOME/.hudiy/share/marketplace/hudiy-marketplace"; install -d "$target/assets"; install -m 0644 "$tmp/repo/index.html" "$tmp/repo/app.js" "$tmp/repo/styles.css" "$tmp/repo/hudiy-theme.json" "$target/"; install -m 0644 "$tmp/repo/assets/MaterialSymbolsRounded.ttf" "$target/assets/"; printf "WebView source installed. Merge the two Hudiy JSON fragments, validate them, and restart Hudiy.\\n"'
+~~~
+
+Prerequisites for this one-liner are a working internet connection, `git`, GNU `install`, and permission to write to `$HOME/.hudiy`. If the device has no `git`, copy the repository to the device first and use the file-copy procedure below.
+
+### One-liner: register the application and menu safely
+
+After the WebView files are present, this command backs up both Hudiy JSON files and replaces only an existing `hudiy_marketplace` entry. It preserves every other application and menu item. It requires `python3`:
+
+~~~bash
+python3 -c 'import datetime,json,pathlib,shutil; c=pathlib.Path.home()/".hudiy/share/config"; names=("applications.json","applications_menu.json"); stamp=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"); b=c/("marketplace-backup-"+stamp); b.mkdir(); [shutil.copy2(c/n,b/n) for n in names]; a=c/"applications.json"; d=json.loads(a.read_text()); d.setdefault("applications",[]); d["applications"]=[x for x in d["applications"] if x.get("action")!="hudiy_marketplace"]+[{"action":"hudiy_marketplace","url":(pathlib.Path.home()/".hudiy/share/marketplace/hudiy-marketplace/index.html").as_uri(),"allowBackground":False,"controlAudioFocus":False,"audioStreamCategory":"NONE","zoomFactor":1}]; a.write_text(json.dumps(d,indent=4)+"\\n"); m=c/"applications_menu.json"; d=json.loads(m.read_text()); d.setdefault("categories",[]); d.setdefault("items",[]); d["items"]=[x for x in d["items"] if x.get("action")!="hudiy_marketplace"]+[{"categories":["Hudiy"],"label":"Hudiy Marketplace","iconFontFamily":"Material Symbols Rounded","iconName":"storefront","action":"hudiy_marketplace"}]; m.write_text(json.dumps(d,indent=4)+"\\n"); print("Backup:",b)'
+~~~
+
+Review the printed backup path before restarting. The command changes only the two Hudiy configuration files named above. It does not modify the native Hudiy binary, package-manager state, systemd, or any community package.
+
 ### Install the WebView source into an existing Hudiy installation
 
 Run these commands on the Hudiy device, not on Windows:
@@ -492,6 +512,164 @@ The implementation must:
 - enforce Supabase RLS or Firebase Security Rules server-side
 
 ## 11. Device deployment
+
+### 11.1 Understand the two machines
+
+The Windows drive letter is not the runtime path. For example:
+
+~~~text
+Windows/USB copy: D:\.hudiy\share\marketplace\hudiy-marketplace\
+Hudiy runtime:   /home/pi/.hudiy/share/marketplace/hudiy-marketplace/
+~~~
+
+The `file:///home/pi/...` URL in the Hudiy registration is resolved on the Raspberry Pi or Linux device. It is not resolved as `D:\...` by Windows. A USB copy becomes active only after its files are transferred to the Hudiy device's `$HOME/.hudiy` tree.
+
+### 11.2 Preflight checklist
+
+Before changing a device, confirm:
+
+- Hudiy is already installed and starts normally.
+- The target user is the same user that runs Hudiy, normally `pi`.
+- The device has enough free storage for the WebView source.
+- The device has internet access if the catalogue is remote.
+- You can access a terminal locally or over SSH.
+- The repository revision you intend to install is trusted.
+- You have a rollback copy of both Hudiy JSON configuration files.
+
+Do not install the Marketplace by replacing the entire `.hudiy` directory. Do not run the Linux commands in this section in Windows PowerShell.
+
+### 11.3 Back up before deployment
+
+Run on the Hudiy device:
+
+~~~bash
+set -eu
+CONFIG="$HOME/.hudiy/share/config"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+BACKUP="$CONFIG/marketplace-backup-$STAMP"
+mkdir -p "$BACKUP"
+cp -a "$CONFIG/applications.json" "$BACKUP/applications.json"
+cp -a "$CONFIG/applications_menu.json" "$BACKUP/applications_menu.json"
+if [ -d "$HOME/.hudiy/share/marketplace/hudiy-marketplace" ]; then
+  cp -a "$HOME/.hudiy/share/marketplace/hudiy-marketplace" "$BACKUP/hudiy-marketplace"
+fi
+printf 'Backup created at %s\n' "$BACKUP"
+~~~
+
+Keep the printed backup path. Do not continue if either configuration file cannot be backed up.
+
+### 11.4 Copy from a repository checkout on the device
+
+~~~bash
+set -eu
+SOURCE="${1:-$PWD}"
+TARGET="$HOME/.hudiy/share/marketplace/hudiy-marketplace"
+test -f "$SOURCE/index.html"
+test -f "$SOURCE/app.js"
+test -f "$SOURCE/styles.css"
+test -f "$SOURCE/hudiy-theme.json"
+test -f "$SOURCE/assets/MaterialSymbolsRounded.ttf"
+install -d "$TARGET/assets"
+install -m 0644 "$SOURCE/index.html" "$SOURCE/app.js" "$SOURCE/styles.css" "$SOURCE/hudiy-theme.json" "$TARGET/"
+install -m 0644 "$SOURCE/assets/MaterialSymbolsRounded.ttf" "$TARGET/assets/"
+~~~
+
+This copies the Marketplace WebView source only. It does not start a second server and does not install a plugin package.
+
+### 11.5 Copy from Windows or a USB drive
+
+The USB is a transfer medium. Copy the repository folder to the Hudiy device with a trusted method such as `scp`, an SSH file transfer tool, or a mounted USB drive. Then run the device-side copy command from the previous section.
+
+Example from PowerShell, when SSH is enabled and the repository is in the current directory:
+
+~~~powershell
+scp -r . pi@hudiy:/home/pi/hudiy-marketplace-source
+~~~
+
+Then connect to the device and run:
+
+~~~bash
+cd "$HOME/hudiy-marketplace-source"
+TARGET="$HOME/.hudiy/share/marketplace/hudiy-marketplace"
+install -d "$TARGET/assets"
+install -m 0644 index.html app.js styles.css hudiy-theme.json "$TARGET/"
+install -m 0644 assets/MaterialSymbolsRounded.ttf "$TARGET/assets/"
+~~~
+
+Replace `pi@hudiy` with the actual Hudiy username and host. Verify the destination before pressing Enter.
+
+### 11.6 Merge and validate registration
+
+Add the application fragment to the `applications` array in:
+
+~~~text
+$HOME/.hudiy/share/config/applications.json
+~~~
+
+Add the menu fragment to the `items` array in:
+
+~~~text
+$HOME/.hudiy/share/config/applications_menu.json
+~~~
+
+The action must be identical in both places:
+
+~~~text
+hudiy_marketplace
+~~~
+
+Validate the files before restarting Hudiy:
+
+~~~bash
+node -e "const fs=require('fs'); for (const f of process.argv.slice(1)) JSON.parse(fs.readFileSync(f,'utf8')); console.log('Hudiy JSON valid')" "$HOME/.hudiy/share/config/applications.json" "$HOME/.hudiy/share/config/applications_menu.json"
+~~~
+
+If the files do not parse, restore the backup. Do not restart Hudiy with invalid JSON.
+
+### 11.7 Restart and first launch
+
+Use the normal Hudiy restart flow. If a full reboot is required by the installed Hudiy release:
+
+~~~bash
+sudo reboot
+~~~
+
+After Hudiy starts:
+
+1. Open the normal Hudiy settings or applications menu.
+2. Select the Hudiy category.
+3. Select Hudiy Marketplace.
+4. Confirm that the page opens inside Hudiy's existing frame.
+5. Confirm that the surrounding Hudiy Back action remains native.
+6. Confirm that the page shows an empty state when no catalogue is published.
+
+### 11.8 Update an existing installation
+
+For an update, repeat the backup, source-copy, JSON-validation, and restart sequence. The source update replaces only the Marketplace WebView files. The registration action remains `hudiy_marketplace`.
+
+Do not mix files from different Marketplace revisions. Update `index.html`, `app.js`, `styles.css`, `hudiy-theme.json`, and the font together.
+
+### 11.9 Roll back
+
+Use the backup path created before deployment:
+
+~~~bash
+set -eu
+BACKUP="$HOME/.hudiy/share/config/marketplace-backup-YYYYMMDD-HHMMSS"
+case "$BACKUP" in
+  "$HOME/.hudiy/share/config/"*) ;;
+  *) echo 'Refusing unsafe backup path'; exit 1 ;;
+esac
+cp -f "$BACKUP/applications.json" "$HOME/.hudiy/share/config/applications.json"
+cp -f "$BACKUP/applications_menu.json" "$HOME/.hudiy/share/config/applications_menu.json"
+rm -rf "$HOME/.hudiy/share/marketplace/hudiy-marketplace"
+if [ -d "$BACKUP/hudiy-marketplace" ]; then
+  cp -a "$BACKUP/hudiy-marketplace" "$HOME/.hudiy/share/marketplace/hudiy-marketplace"
+fi
+sudo reboot
+~~~
+
+Replace the timestamp only after confirming it is the intended directory inside `$HOME/.hudiy/share/config/`.
 
 Development happens in this repository. Hudiy loads the resulting static WebView source from its existing Marketplace application directory:
 
